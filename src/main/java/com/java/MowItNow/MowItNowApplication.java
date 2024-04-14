@@ -11,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,10 +20,9 @@ import java.util.List;
 @SpringBootApplication
 public class MowItNowApplication {
 
-
 	public static void main(String[] args) throws IOException {
-		// Read input file line by line
-		BufferedReader reader = new BufferedReader(new FileReader("input.txt"));
+		// Load input file as a resource stream
+		BufferedReader reader = new BufferedReader(new InputStreamReader(MowItNowApplication.class.getClassLoader().getResourceAsStream("input.txt")));
 		String line;
 
 		// Initialize lists to store instructions and final positions
@@ -35,20 +35,18 @@ public class MowItNowApplication {
 
 		// Read each line, parse data, process instructions, and write final positions
 		while ((line = reader.readLine()) != null) {
-			LawnMowerInstruction instruction = new LawnMowerInstructionReader().parseMowerDataLine(line);
+			LawnMowerInstruction instruction = new LawnMowerInstructionReader("input.txt").parseMowerDataLine(line);
 			instructions.add(instruction);
 
             MowerPosition finalPosition = null;
             try {
                 finalPosition = processor.process(instruction);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            finalPositions.add(finalPosition);
-		}
+            } catch (IllegalArgumentException e) {
+				System.err.println("Error processing instruction: " + e.getMessage());
+			}
 		reader.close();
 
-		writer.writeFinalPositions(finalPositions);
+		writer.writeFinalPositions(finalPositions );
 	}
-
+}
 }

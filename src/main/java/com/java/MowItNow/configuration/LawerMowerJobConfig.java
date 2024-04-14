@@ -9,9 +9,12 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.item.ItemProcessor;
+
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.TaskExecutor;
 
 public class LawerMowerJobConfig {
 
@@ -19,10 +22,49 @@ public class LawerMowerJobConfig {
     @Autowired
     private StepBuilderFactory stepBuilderFactory;
 
-
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     private JobBuilderFactory jobBuilderFactory;
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private LawnMowerInstructionReader lawnMowerInstructionReader;
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private LawnMowerProcessor lawnMowerProcessor;
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private LawnMowerWriter lawnMowerWriter;
+
+
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private CustomTaskExecutor customTaskExecutor; // Inject CustomTaskExecutor
+
+
+    @Bean
+    public LawnMowerInstructionReader lawnMowerInstructionReader() {
+        return new LawnMowerInstructionReader(inputFilePath()); // Assuming inputFilePath() is correctly defined
+    }
+
+    @Bean
+    public LawnMowerProcessor lawnMowerProcessor() {
+        return new LawnMowerProcessor();
+    }
+
+    @Bean
+    public LawnMowerWriter lawnMowerWriter() {
+        return new LawnMowerWriter();
+    }
+
+
+    @Bean
+    public LawnMowerTasklet lawnMowerTasklet() {
+        return new LawnMowerTasklet();  // Create an instance of LawnMowerTasklet
+    }
+
 
     @Bean
     public Job lawnMowerJob() {
@@ -35,24 +77,16 @@ public class LawerMowerJobConfig {
     public Step mowLawnStep() {
         return stepBuilderFactory.get("mowLawnStep")
                 .<LawnMowerInstruction, MowerPosition>chunk(1)
-                .reader(new LawnMowerInstructionReader())
-                .processor((ItemProcessor<? super LawnMowerInstruction, ? extends MowerPosition>) new LawnMowerProcessor())
-                .writer(new LawnMowerWriter())
+                .reader((ItemReader<? extends LawnMowerInstruction>) lawnMowerInstructionReader)
+                .processor(lawnMowerProcessor)
+                .writer((ItemWriter<? super MowerPosition>) lawnMowerWriter)
                 .build();
     }
 
     @Bean
-    public LawnMowerInstructionReader lawnMowerInstructionReader() {
-        return new LawnMowerInstructionReader("input.txt"); // Replace with actual file path
+    public String inputFilePath() {
+        // Configure the input file path here (e.g., from application properties)
+        return "input.txt";
     }
 
-    @Bean
-    public LawnMowerProcessor lawnMowerProcessor() {
-        return new LawnMowerProcessor();
-    }
-
-    @Bean
-    public LawnMowerWriter lawnMowerWriter() {
-        return new LawnMowerWriter();
-    }
 }
